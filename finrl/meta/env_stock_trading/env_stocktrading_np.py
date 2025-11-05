@@ -20,6 +20,24 @@ class StockTradingEnv(gym.Env):
         reward_scaling=2**-11,
         initial_stocks=None,
     ):
+        """Stock Trading Environment (Simplest)
+
+        Args:
+            config (dict): price_array, tech_array, turbulence_array, if_train
+            initial_account (float, optional): Initial account balance. Defaults to 1e6.
+            gamma (float, optional): Discount factor for future rewards. Defaults to 0.99.
+            turbulence_thresh (int, optional): Turbulence threshold for trading decisions. Sell all stocks if above this threshold. Defaults to 99.
+            min_stock_rate (float, optional): Minimum stock trading rate. No trading allowed below this rate. Defaults to 0.1.
+            max_stock (float, optional): Maximum stock trading limit. Defaults to 1e2.
+            initial_capital (float, optional): Initial capital for trading. Defaults to 1e6.
+            buy_cost_pct (float, optional): Buy transaction cost percentage. Defaults to 1e-3.
+            sell_cost_pct (float, optional): Sell transaction cost percentage. Defaults to 1e-3.
+            reward_scaling (float, optional): Reward scaling factor. Defaults to 2**-11.
+            initial_stocks (np.ndarray, optional): Initial stock holdings. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
         price_ary = config["price_array"]
         tech_ary = config["tech_array"]
         turbulence_ary = config["turbulence_array"]
@@ -29,7 +47,7 @@ class StockTradingEnv(gym.Env):
         self.turbulence_ary = turbulence_ary
 
         self.tech_ary = self.tech_ary * 2**-7
-        self.turbulence_bool = (turbulence_ary > turbulence_thresh).astype(np.float32)
+        self.turbulence_bool = (turbulence_ary > turbulence_thresh).astype(np.float32) #! Train/Test if_vix=False to use this rule!! it does not make sense to use if_vix=True with this turbulence rule
         self.turbulence_ary = (
             self.sigmoid_sign(turbulence_ary, turbulence_thresh) * 2**-5
         ).astype(np.float32)
@@ -49,9 +67,9 @@ class StockTradingEnv(gym.Env):
         )
 
         # reset()
-        self.day = None
-        self.amount = None
-        self.stocks = None
+        self.day = None #! index of current trading day
+        self.amount = None #! cash balance
+        self.stocks = None #! number of shares held
         self.total_asset = None
         self.gamma_reward = None
         self.initial_total_asset = None
@@ -106,18 +124,18 @@ class StockTradingEnv(gym.Env):
         return self.get_state(price), {}  # state
 
     def step(self, actions):
-        actions = (actions * self.max_stock).astype(int)
+        actions = (actions * self.max_stock).astype(int) #! scale the action to max_stock, actions represent number of shares to buy/sell (buy: +, sell: -)
 
         self.day += 1
         price = self.price_ary[self.day]
-        self.stocks_cool_down += 1
+        self.stocks_cool_down += 1 #todo: check cool down logic
 
         if self.turbulence_bool[self.day] == 0:
             min_action = int(self.max_stock * self.min_stock_rate)  # stock_cd
-            for index in np.where(actions < -min_action)[0]:  # sell_index:
+            for index in np.where(actions < -min_action)[0]:  # sell_index: 
                 if price[index] > 0:  # Sell only if current asset is > 0
-                    sell_num_shares = min(self.stocks[index], -actions[index])
-                    self.stocks[index] -= sell_num_shares
+                    sell_num_shares = min(self.stocks[index], -actions[index]) #! cannot sell more than what we have
+                    self.stocks[index] -= sell_num_shares 
                     self.amount += (
                         price[index] * sell_num_shares * (1 - self.sell_cost_pct)
                     )
@@ -126,7 +144,7 @@ class StockTradingEnv(gym.Env):
                 if (
                     price[index] > 0
                 ):  # Buy only if the price is > 0 (no missing data in this particular date)
-                    buy_num_shares = min(self.amount // price[index], actions[index])
+                    buy_num_shares = min(self.amount // price[index], actions[index]) #! cannot buy more than what we can afford
                     self.stocks[index] += buy_num_shares
                     self.amount -= (
                         price[index] * buy_num_shares * (1 + self.buy_cost_pct)

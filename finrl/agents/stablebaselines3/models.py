@@ -196,13 +196,13 @@ class DRLAgent:
             raise ValueError(f"Failed to load agent. Error: {str(error)}") from error
 
         # test on the testing env
-        state = environment.reset()
+        state, _info = environment.reset()
         episode_returns = []  # the cumulative_return / initial_account
         episode_total_assets = [environment.initial_total_asset]
         done = False
         while not done:
             action = model.predict(state, deterministic=deterministic)[0]
-            state, reward, done, _ = environment.step(action)
+            state, reward, done, _ , _= environment.step(action)
 
             total_asset = (
                 environment.amount

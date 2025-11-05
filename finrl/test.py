@@ -19,6 +19,7 @@ def test(
     env,
     model_name,
     if_vix=True,
+    data_source_file=None,
     **kwargs,
 ):
     # import data processor
@@ -26,12 +27,15 @@ def test(
 
     # fetch data
     dp = DataProcessor(data_source, **kwargs)
-    data = dp.download_data(ticker_list, start_date, end_date, time_interval)
-    data = dp.clean_data(data)
-    data = dp.add_technical_indicator(data, technical_indicator_list)
-
+    if data_source_file is None:
+        data = dp.download_data(ticker_list, start_date, end_date, time_interval)
+        data = dp.add_technical_indicator(data, technical_indicator_list)
+    else:
+        dp.tech_indicator_list = technical_indicator_list
+        data = dp.load_data_from_csv(data_source_file, start_date, end_date, time_interval, technical_indicator_list)
     if if_vix:
-        data = dp.add_vix(data)
+        if "VIXY" not in data.columns:
+            data = dp.add_vix(data)
     price_array, tech_array, turbulence_array = dp.df_to_array(data, if_vix)
 
     env_config = {
@@ -78,6 +82,7 @@ def test(
         return episode_total_assets
     else:
         raise ValueError("DRL library input is NOT supported. Please check.")
+
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import pandas as pd
 
 from finrl.meta.data_processors.processor_alpaca import AlpacaProcessor as Alpaca
 from finrl.meta.data_processors.processor_wrds import WrdsProcessor as Wrds
-from finrl.meta.data_processors.processor_yahoofinance import (
+from finrl.meta.data_processors.processor_yahoofinance_new import (
     YahooFinanceProcessor as YahooFinance,
 )
 
@@ -45,7 +45,19 @@ class DataProcessor:
             time_interval=time_interval,
         )
         return df
-
+    def load_data_from_csv(self, data_source_file, start_date, end_date, time_interval, technical_indicator_list) -> pd.DataFrame:
+        if self.processor.__class__.__name__ == "Wrds":
+            raise ValueError("Wrds data processor does not support loading data from csv yet.")
+        if self.processor.__class__.__name__ == "Alpaca":
+            raise ValueError("Alpaca data processor does not support loading data from csv yet.")
+        df = self.processor.load_data_from_csv(
+            data_source_file=data_source_file,
+            start_date=start_date,
+            end_date=end_date,
+            time_interval=time_interval,
+            technical_indicator_list=technical_indicator_list,
+        )
+        return df
     def clean_data(self, df) -> pd.DataFrame:
         df = self.processor.clean_data(df)
         return df

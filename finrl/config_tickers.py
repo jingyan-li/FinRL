@@ -31,7 +31,7 @@ DOW_30_TICKER = [
     "CRM",
     "VZ",
     "V",
-    "WBA",
+    # "WBA",
     "WMT",
     "DIS",
     "DOW",
