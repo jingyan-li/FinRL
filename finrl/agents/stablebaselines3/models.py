@@ -23,6 +23,8 @@ from finrl.meta.preprocessor.preprocessors import data_split
 
 MODELS = {"a2c": A2C, "ddpg": DDPG, "td3": TD3, "sac": SAC, "ppo": PPO}
 
+OFFPOLICY_MODELS = ["ddpg", "td3", "sac"]
+
 MODEL_KWARGS = {x: config.__dict__[f"{x.upper()}_PARAMS"] for x in MODELS.keys()}
 
 NOISE = {
@@ -36,8 +38,9 @@ class TensorboardCallback(BaseCallback):
     Custom callback for plotting additional values in tensorboard.
     """
 
-    def __init__(self, verbose=0):
+    def __init__(self, verbose=0, offpolicy=False):
         super().__init__(verbose)
+        self.offpolicy = offpolicy
 
     def _on_step(self) -> bool:
         try:
@@ -56,6 +59,8 @@ class TensorboardCallback(BaseCallback):
         return True
 
     def _on_rollout_end(self) -> bool:
+        if self.offpolicy:
+            return True
         try:
             rollout_buffer_rewards = self.locals["rollout_buffer"].rewards.flatten()
             self.logger.record(
@@ -138,16 +143,16 @@ class DRLAgent:
         tb_log_name,
         total_timesteps=5000,
         callbacks: Type[BaseCallback] = None,
-    ):  # this function is static method, so it can be called without creating an instance of the class
+    ):  # this function is static method, so it can be called without creating an instance of the class 
         model = model.learn(
             total_timesteps=total_timesteps,
             tb_log_name=tb_log_name,
             callback=(
                 CallbackList(
-                    [TensorboardCallback()] + [callback for callback in callbacks]
+                    [TensorboardCallback(offpolicy=model.__class__.__name__.lower() in OFFPOLICY_MODELS)] + [callback for callback in callbacks]
                 )
                 if callbacks is not None
-                else TensorboardCallback()
+                else TensorboardCallback(offpolicy=model.__class__.__name__.lower() in OFFPOLICY_MODELS)
             ),
         )
         return model
