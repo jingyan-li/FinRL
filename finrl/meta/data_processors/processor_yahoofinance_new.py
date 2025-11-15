@@ -226,6 +226,8 @@ class YahooFinanceProcessor:
         end_date: str,
         time_interval: str,
         proxy: str | dict = None,
+        train_test_split_date: str = None,
+        test_trade_split_date: str = None,
     ) -> pd.DataFrame:
         
         ############ LJY Updated to fix Yahoo Finance slow downloading issue ############
@@ -243,6 +245,22 @@ class YahooFinanceProcessor:
         
         for ticker in ticker_list:
             ticker_data = yf.download([ticker], start=start_date, end=end_date, interval=time_interval, auto_adjust=True, timeout=10)
+            if train_test_split_date is not None:
+                train_test_split_ts = pd.Timestamp(train_test_split_date)
+                if ticker_data.index.min() >= train_test_split_ts:
+                    print(f"Skipping {ticker} as it has no data before {train_test_split_date}.")
+                    continue
+                if ticker_data.index.max() <= train_test_split_ts:
+                    print(f"Skipping {ticker} as it has no data after {train_test_split_date}.")
+                    continue
+            if test_trade_split_date is not None:
+                test_trade_split_ts = pd.Timestamp(test_trade_split_date)
+                if ticker_data.index.min() >= test_trade_split_ts:
+                    print(f"Skipping {ticker} as it has no data before {test_trade_split_date}.")
+                    continue
+                if ticker_data.index.max() <= test_trade_split_ts:
+                    print(f"Skipping {ticker} as it has no data after {test_trade_split_date}.")
+                    continue
             # Flatten multi-index columns returned by yfinance into long format with a "tic" column
             if isinstance(ticker_data.columns, pd.MultiIndex):
                 # stack the ticker level into rows: index -> (timestamp, tic)

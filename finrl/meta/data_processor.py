@@ -36,13 +36,14 @@ class DataProcessor:
         self.vix = vix
 
     def download_data(
-        self, ticker_list, start_date, end_date, time_interval
+        self, ticker_list, start_date, end_date, time_interval,**kwargs
     ) -> pd.DataFrame:
         df = self.processor.download_data(
             ticker_list=ticker_list,
             start_date=start_date,
             end_date=end_date,
             time_interval=time_interval,
+            **kwargs
         )
         return df
     def load_data_from_csv(self, data_source_file, start_date, end_date, time_interval, technical_indicator_list) -> pd.DataFrame:
