@@ -245,6 +245,9 @@ class YahooFinanceProcessor:
         
         for ticker in ticker_list:
             ticker_data = yf.download([ticker], start=start_date, end=end_date, interval=time_interval, auto_adjust=True, timeout=10)
+            # yfinance may return timezone-aware timestamps; strip tz to compare against naive split dates
+            if isinstance(ticker_data.index, pd.DatetimeIndex) and ticker_data.index.tz is not None:
+                ticker_data.index = ticker_data.index.tz_localize(None)
             if train_test_split_date is not None:
                 train_test_split_ts = pd.Timestamp(train_test_split_date)
                 if ticker_data.index.min() >= train_test_split_ts:
