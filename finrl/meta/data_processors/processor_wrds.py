@@ -41,7 +41,7 @@ class WrdsProcessor:
                 trading_days.append(str(day)[:10])
             return trading_days
 
-        def data_fetch_wrds(date, stock_set):
+        def data_fetch_wrds(date, stock_set, time_interval):
             # start_date, end_date should be in the same year
             current_date = datetime.datetime.strptime(date, "%Y-%m-%d")
             lib = "taqm_" + str(current_date.year)  # taqm_2021
